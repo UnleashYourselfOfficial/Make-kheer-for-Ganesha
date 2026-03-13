@@ -2,6 +2,8 @@
 <html lang="en">
 
 <head>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
@@ -427,15 +429,35 @@
         }
 
         /* END SCREENS */
+
         .end-img {
             max-width: 400px;
             width: 80%;
             margin-bottom: 20px;
+
+            filter: drop-shadow(0 10px 25px rgba(255, 255, 255, 0.25));
+        }
+
+        #win-screen {
+            background:
+                radial-gradient(circle at center, #fff7cc 0%, #ffd966 40%, #ffb84d 75%, #ff9933 100%);
+        }
+
+        #lose-screen {
+            background:
+                radial-gradient(circle at center, #e6f0ff 0%, #cce0ff 40%, #b3ccff 75%, #99b3ff 100%);
         }
     </style>
 </head>
 
 <body>
+
+    <audio id="s_click" src="assets/FingerSnap.wav" preload="auto"></audio>
+    <audio id="s_correct" src="assets/correct.mp3" preload="auto"></audio>
+    <audio id="s_wrong" src="assets/error.mp3" preload="auto"></audio>
+    <audio id="s_win" src="assets/cheer.mp3" preload="auto"></audio>
+    <audio id="s_lose" src="assets/lose.mp3" preload="auto"></audio>
+    <audio id="bg_music" src="assets/VideoGame2.mp3" loop></audio>
 
     <!-- Start Screen -->
     <div id="start-screen" class="screen active">
@@ -445,7 +467,7 @@
                 <p class="subtitle">Pick the RIGHT ingredients for the kheer...</p>
                 <p class="subtitle">Before time runs out!!</p>
             </div>
-            <button class="btn" onclick="startGame()">
+            <button class="btn" onclick="playSound('s_click');startGame()">
                 START
             </button>
         </div>
@@ -486,6 +508,8 @@
     </div>
 
     <script>
+
+
         const potStages = [
             'assets/pot_empty.png',
             'assets/pot_milk.png',
@@ -508,7 +532,7 @@
 
         ];
 
-        let timeLeft = 60;
+        let timeLeft = 5;
         let timerInterval;
         let correctAdded = 0;
         let gameActive = false;
@@ -518,7 +542,25 @@
             document.getElementById(screenId).classList.add('active');
         }
 
+        function playSound(id) {
+
+            const s = document.getElementById(id);
+            if (!s) return;
+
+            s.pause();
+            s.currentTime = 0;
+
+            s.play().catch(() => { });
+        }
+
         function startGame() {
+
+            playSound('s_click');
+
+            const bg = document.getElementById("bg_music");
+            bg.volume = 0.35;
+            bg.play();
+
             showScreen('gameplay-screen');
             gameActive = true;
             setupIngredients();
@@ -622,6 +664,7 @@
             if (!gameActive) return;
 
             if (data.type === 'correct') {
+                playSound('s_correct');
                 el.style.pointerEvents = 'none';
                 el.style.transition = 'all 0.8s cubic-bezier(0.5, -0.5, 1, 1)';
 
@@ -649,6 +692,7 @@
 
             } else {
                 // Wrong ingredient
+                playSound('s_wrong');
                 el.classList.add('shake-anim');
                 const xIcon = document.getElementById('wrong-x-icon');
                 const rect = el.getBoundingClientRect();
@@ -682,13 +726,77 @@
             setTimeout(() => sparkle.remove(), 600);
         }
 
+        function randomInRange(min, max) {
+            return Math.random() * (max - min) + min;
+        }
+
+        function makeItRain() {
+
+            var end = Date.now() + (2 * 1000);
+
+            const colors = [
+                '#ff4d4d',   // bright red
+                '#0066ff',   // blue
+                '#00cc66',   // green
+                '#ff66cc',   // pink
+                '#ffffff',   // white
+                '#6633ff'    // purple
+            ];
+
+            function frame() {
+
+                confetti({
+                    particleCount: 2,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0 },
+                    colors: colors,
+                    scalar: 1.3
+                });
+
+                confetti({
+                    particleCount: 2,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1 },
+                    colors: colors
+                });
+
+                if (Date.now() < end) {
+                    requestAnimationFrame(frame);
+                }
+            }
+
+            frame();
+        }
+
         function endGame(win) {
+
             gameActive = false;
             clearInterval(timerInterval);
+
+            const bg = document.getElementById("bg_music");
+            bg.pause();
+            bg.currentTime = 0;
+
             if (win) {
+
                 showScreen('win-screen');
+
+                setTimeout(() => {
+                    playSound('s_win');
+                }, 150);
+
+                setTimeout(makeItRain, 300);
+
             } else {
+
                 showScreen('lose-screen');
+
+                setTimeout(() => {
+                    playSound('s_lose');
+                }, 150);
+
             }
         }
     </script>
